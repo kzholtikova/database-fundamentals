@@ -11,4 +11,4 @@ A football league system is a hierarchy of leagues that compete in the same spor
 * **Player:** This table stores information about each player who belongs to one or more teams in the league system, such as name, date of birth, nationality, position, and number. 
 * **Match:** This table stores information about each match that is played between two teams in the league system, such as match, date, time, venue, home team, away team, home score, and away score.
 * **Goal:** This table stores information about each goal that is scored in a match (match, player, team, and time). 
-**Standing:** This table stores information about the current ranking of each team in each league, team, position, points, played, won, drawn, lost, goals for, goals against, and goal difference.
+* **Standing:** This table stores information about the current ranking of each team in each league, team, position, points, played, won, drawn, lost, goals for, goals against, and goal difference.
