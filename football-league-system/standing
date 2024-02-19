@@ -1,0 +1,26 @@
+use football_system;
+
+UPDATE standing s
+    JOIN (
+        SELECT team_id, DENSE_RANK() OVER (ORDER BY points DESC, goals_for - goals_against DESC) AS new_position
+        FROM standing
+    ) ranked_teams ON s.team_id = ranked_teams.team_id
+SET s.position = ranked_teams.new_position;
+
+UPDATE standing s
+SET drawn = (SELECT COUNT(a.id)
+            FROM attendee a
+            WHERE a.team_id = s.team_id and a.is_winner is NULL);
+
+UPDATE standing s
+SET points = (won * 3) + drawn;
+
+UPDATE standing s
+SET goals_against = (
+    SELECT COALESCE(SUM(1), 0)
+    FROM goal g
+             JOIN attendee a ON g.attendee_id = a.id
+    WHERE a.team_id = s.team_id
+      AND g.time IS NOT NULL
+      AND a.is_winner = 0
+);
