@@ -90,3 +90,33 @@ FROM (SELECT subject_id, AVG(mark) avg_mark
     JOIN subjects s on avg_marks.subject_id = s.subject_id
 ORDER BY avg_mark DESC
 LIMIT 3;
+
+# list all unique subjects taken by students in 2 specific groups (1,5)
+SELECT DISTINCT subject_id
+FROM marks m
+    JOIN test.students s on s.student_id = m.student_id
+    JOIN test.study_groups sg on s.group_id = sg.group_id
+WHERE s.group_id = 1
+UNION
+SELECT DISTINCT subject_id
+FROM marks m
+         JOIN test.students s on s.student_id = m.student_id
+         JOIN test.study_groups sg on s.group_id = sg.group_id
+WHERE s.group_id = 5;
+
+# combine students with high marks in Mathematics and Physics
+SELECT s.student_name, sb.subject_name
+FROM marks m
+    JOIN test.students s on s.student_id = m.student_id
+    JOIN test.subjects sb on m.subject_id = sb.subject_id
+WHERE sb.subject_name = 'Mathematics'
+GROUP BY m.student_id
+HAVING SUM(CASE WHEN m.mark <= 75 THEN 1 ELSE 0 END) = 0
+UNION
+SELECT s.student_name, sb.subject_name
+FROM marks m
+         JOIN test.students s on s.student_id = m.student_id
+         JOIN test.subjects sb on m.subject_id = sb.subject_id
+WHERE sb.subject_name = 'Physics'
+GROUP BY m.student_id
+HAVING SUM(CASE WHEN m.mark <= 75 THEN 1 ELSE 0 END) = 0;
