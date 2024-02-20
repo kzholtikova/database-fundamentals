@@ -71,3 +71,22 @@ FROM (SELECT m.subject_id, avg(m.mark) avg_mark
       GROUP BY m.student_id, m.subject_id
       having avg_mark > 65) a
 GROUP BY a.subject_id;
+
+# find students with above average marks in a specific subjects
+SELECT s.student_name, avg_mark
+FROM (SELECT student_id, AVG(mark) avg_mark
+        FROM marks m
+        WHERE subject_id = 1
+        GROUP BY m.student_id) avg_marks
+    JOIN students s on avg_marks.student_id = s.student_id
+WHERE avg_mark > 80
+ORDER BY avg_mark DESC;
+
+# list subjects with the highest average mark
+SELECT s.subject_name, avg_mark
+FROM (SELECT subject_id, AVG(mark) avg_mark
+      FROM marks m
+      GROUP BY m.subject_id) avg_marks
+    JOIN subjects s on avg_marks.subject_id = s.subject_id
+ORDER BY avg_mark DESC
+LIMIT 3;
