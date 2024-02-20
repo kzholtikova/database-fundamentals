@@ -13,5 +13,6 @@ A football league system is a hierarchy of leagues that compete in the same spor
 * **Goal:** This table stores information about each goal that is scored in a match (match, player, team, and time). 
 * **Standing:** This table stores information about the current ranking of each team in each league, team, position, points, played, won, drawn, lost, goals for, goals against, and goal difference.
 
-### Management system
-https://lucid.app/lucidchart/c5c0fea7-b658-4cc9-a18e-8bec70abfe1c/edit?viewport_loc=-1892%2C315%2C1652%2C991%2C0_0&invitationId=inv_43af4491-5099-4d08-92c4-532ad585d965
+### Diagram
+<img width="279" alt="image" src="https://github.com/kzholtikova/database-fundamentals/assets/145042018/dfc5e3b4-e069-4df4-97ec-2502e1d0b49e">
+
