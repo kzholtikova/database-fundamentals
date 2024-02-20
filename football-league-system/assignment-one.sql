@@ -1,40 +1,26 @@
 use football_system;
 
-# 3 matches with the most goals scored
-SELECT venue, t1.team_name, t2.team_name, home_score + away_score as total_goals
-FROM football_matches m
-    INNER JOIN teams t1 on m.home_team_id = t1.team_id
-    INNER JOIN teams t2 on m.away_team_id = t2.team_id
-ORDER BY total_goals DESC, venue
-LIMIT 3;
+# matches with dry-outs
+SELECT m.id, CONCAT(COUNT(g.id), ':', 0) score
+FROM goal g
+    JOIN attendee a on a.id = g.attendee_id
+    JOIN football_match m on m.id = a.match_id
+GROUP BY a.match_id
+HAVING COUNT(DISTINCT g.attendee_id) <= 1;
 
-# top player from the team scored the greatest number of goals
-SELECT p.player_name, COUNT(g.goal_id) goals_scored
-FROM goals g
-    INNER JOIN players p on g.player_id = p.player_id
-WHERE p.team_id = (SELECT team_id FROM standing ORDER BY goals_for LIMIT 1)
-GROUP BY g.player_id
-ORDER BY goals_scored DESC
-LIMIT 1;
-
-# average goals scored in each league
-SELECT l.league_name, l.league_position, ROUND(AVG(s.goals_for)) avg_goals_scored
+# leagues ranking
+SELECT l.name, SUM(s.points) total_points, SUM(goals_for) - SUM(goals_against) goals_difference
 FROM standing s
-    INNER JOIN leagues l on s.league_id = l.league_id
-GROUP BY s.league_id
-ORDER BY avg_goals_scored DESC;
+    JOIN team t on t.id = s.team_id
+    JOIN league l on l.id = t.league_id
+GROUP BY l.id
+ORDER BY total_points DESC, goals_difference DESC;
 
-# stadium with the least goals scored over all matches
-SELECT venue, SUM(home_score + away_score) total_goals
-FROM football_matches m
-GROUP BY venue
-ORDER BY total_goals
-LIMIT 5;
-
-# venues played in count for each team
-SELECT t.team_name, COUNT(DISTINCT m.venue) as venues_count
-FROM football_matches m
-    JOIN teams t ON m.home_team_id = t.team_id OR m.away_team_id = t.team_id
-GROUP BY t.team_id
-HAVING venues_count > 1
-ORDER BY venues_count DESC;
+# matches with the majority goals made in the 2nd halftime
+SELECT m.name, SUM(g.time >= TIME('00:45:00')) second_half_goals, COUNT(g.id) total_goals
+FROM goal g
+    JOIN attendee a on a.id = g.attendee_id
+    JOIN football_match m on m.id = a.match_id
+GROUP BY a.match_id
+HAVING second_half_goals > total_goals / 2
+ORDER BY total_goals DESC, second_half_goals DESC
