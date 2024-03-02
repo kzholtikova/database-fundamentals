@@ -1,26 +1,93 @@
 use football_system;
 
-UPDATE standing s
-    JOIN (
-        SELECT team_id, DENSE_RANK() OVER (ORDER BY points DESC, goals_for - goals_against DESC) AS new_position
-        FROM standing
-    ) ranked_teams ON s.team_id = ranked_teams.team_id
-SET s.position = ranked_teams.new_position;
-
-UPDATE standing s
-SET drawn = (SELECT COUNT(a.id)
-            FROM attendee a
-            WHERE a.team_id = s.team_id and a.is_winner is NULL);
-
-UPDATE standing s
-SET points = (won * 3) + drawn;
-
-UPDATE standing s
-SET goals_against = (
-    SELECT COALESCE(SUM(1), 0)
-    FROM goal g
-             JOIN attendee a ON g.attendee_id = a.id
-    WHERE a.team_id = s.team_id
-      AND g.time IS NOT NULL
-      AND a.is_winner = 0
+CREATE TABLE seasons (
+    id INTEGER PRIMARY KEY,
+    name TEXT,
+    start_date DATE
 );
+
+CREATE TABLE match_days (
+    id INTEGER AUTO_INCREMENT PRIMARY KEY,
+    season_id INTEGER NOT NULL,
+    day_number INTEGER NOT NULL CHECK (day_number > 0),
+    CONSTRAINT season2day_unique UNIQUE (season_id, day_number),
+    FOREIGN KEY (season_id) REFERENCES seasons(id)
+);
+
+CREATE TABLE standings (
+   match_day_id INTEGER NOT NULL,
+   team_id INTEGER NOT NULL,
+   points INTEGER NOT NULL,
+   played INTEGER NOT NULL,
+   won INTEGER NOT NULL,
+   drawn INTEGER NOT NULL,
+   lost INTEGER NOT NULL,
+   goals_for INTEGER NOT NULL,
+   goals_against INTEGER NOT NULL,
+   PRIMARY KEY (match_day_id, team_id),
+   FOREIGN KEY (team_id) REFERENCES teams(id)
+);
+
+
+ALTER TABLE matches
+ADD match_day_id INTEGER;
+
+INSERT INTO seasons (id, name, start_date)
+VALUES
+    (1, 'Spring 2022', '2022-03-01'),
+    (2, 'Fall 2022', '2022-09-01'),
+    (3, 'Spring 2023', '2023-03-01'),
+    (4, 'Fall 2023', '2023-09-01');
+
+INSERT INTO match_days (season_id, day_number)
+VALUES (1, 1), -- 2 7
+       (1, 2), -- 16
+       (1, 3), -- 12 14
+       (1, 4), -- 4 5 6
+
+       (2, 1), -- 3/ 5
+       (2, 2), -- 13
+       (2, 3), -- 24
+       (2, 4), -- 20/ 8
+       (2, 5), -- 17 25
+
+       (3, 1), -- 8 19 22/ 10
+       (3, 2), -- 15 23
+       (3, 3), -- 1/ 12
+       
+       (4, 1); -- 9 10 11 18 24 21
+
+ALTER TABLE matches
+ADD FOREIGN KEY (match_day_id) REFERENCES match_days (id);
+
+
+INSERT INTO standings (match_day_id, team_id, points, played, won, drawn, lost, goals_for, goals_against)
+SELECT
+    match_day_id,
+    team_id,
+    SUM(points) AS total_points,
+    COUNT(*) AS played,
+    SUM(won) AS won,
+    SUM(drawn) AS drawn,
+    SUM(lost) AS lost,
+    SUM(goals_for) AS goals_for,
+    SUM(goals_against) AS goals_against
+FROM (SELECT m.match_day_id, a.team_id,
+        CASE
+             WHEN a.is_winner = 1 THEN 3
+             WHEN a.is_winner IS NULL THEN 1
+             ELSE 0 END AS points,
+         CASE WHEN a.is_winner = 1 THEN 1 ELSE 0 END AS won,
+         CASE WHEN a.is_winner IS NULL THEN 1 ELSE 0 END AS drawn,
+         CASE WHEN a.is_winner = 0 THEN 1 ELSE 0 END AS lost,
+         COUNT(DISTINCT CASE WHEN g.attendee_id = a.id THEN g.id END) AS goals_for,
+         (SELECT COUNT(DISTINCT g2.id)
+            FROM matches m2
+                JOIN attendees a2 ON m2.id = a2.match_id
+                JOIN goals g2 ON g2.attendee_id = a2.id
+                WHERE a2.team_id = a.team_id AND m2.match_day_id = m.match_day_id) AS goals_against
+     FROM matches m
+        JOIN attendees a ON m.id = a.match_id
+        LEFT JOIN goals g ON g.attendee_id = a.id
+     GROUP BY m.match_day_id, a.team_id, a.is_winner) AS subquery
+GROUP BY match_day_id, team_id;
